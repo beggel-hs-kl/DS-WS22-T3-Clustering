@@ -129,7 +129,7 @@ To understand the structure of the clusters, you can follow the branches up to t
 clusters <- hclust(dist(mall_customers[4:5]))
 
 # Create the dendrogram using ggdendro
-den <- ggdendrogram(clusters, main="Dendrogram") + labs(title="Mall Customers Dendrogram")
+den <- ggdendrogram(clusters, main="Dendrogram", labels=FALSE) + labs(title="Mall Customers Dendrogram")
 
 # Plot dendrogram
 den
@@ -175,10 +175,10 @@ To draw rectangles around the clusters we use the function rect.hclust and pass 
 
 ```{r}
 # Prepare plot
-plot(clusters, cex=0.1, main="Mall Customers Dendrogram with Groups")
+plot(clusters, cex=0.1, main="Mall Customers Dendrogram with Groups", labels=FALSE)
 
 # Add rectangles to plot. Define colors by using border parameter
-rect.hclust(clusters, k=k, border=2:6)
+rect.hclust(clusters, k=k, border=c("coral1", "yellow4", "mediumseagreen", "deepskyblue", "darkorchid1"))
 ```
 
 ## Cut into Clusters
@@ -188,6 +188,7 @@ As we decided to go with a value of 5 for k we now can cut the dendrogram into c
 The cutree function takes an hclust object as input and returns a vector of cluster assignments for each data point. By default, the cutree function cuts the tree at a height such that the resulting clusters are as balanced as possible, but you can also specify the number of clusters directly using the k argument.
 
 ```{r}
+# Set k
 k = 5
 
 # Cut Dendrogram into k clusters using cutree
@@ -206,6 +207,29 @@ fviz_cluster(list(data = mall_customers[4:5], cluster=clusters_cut))
 ```
 
 ## Summarize Clusters
+
+### Inspect Distribution
+
+```{r}
+# Set alpha
+al = .7
+
+# Create a histogram of the Annual Income column
+ggplot(mall_customers, aes(x=AnnualIncome,fill=as.factor(clusters_cut))) + 
+  geom_histogram(alpha=al) +
+  #geom_density(color="#FFFFFF33", alpha=al) +
+  ggtitle("Annual Income by clusters") + 
+  theme_minimal() +
+  scale_fill_discrete(name="cluster")
+
+# Create a histogram of the Spending Score column
+ggplot(mall_customers, aes(x=SpendingScore,fill=as.factor(clusters_cut))) + 
+  geom_histogram(alpha=al) +
+  #geom_density(color="#FFFFFF33", alpha=al) +
+  ggtitle("Spending Score by clusters") + 
+  theme_minimal() +
+  scale_fill_discrete(name="cluster")
+```
 
 ### Aggregation
 
@@ -403,7 +427,7 @@ k = 5
 plot(clusters_all, cex=0.1, main="Mall Customers Dendrogram with Groups")
 
 # Add rectangles to plot. Define colors by using border parameter
-rect.hclust(clusters_all, k=k, border=6:2)
+rect.hclust(clusters_all, k=k, border=c("darkorchid1", "deepskyblue", "yellow4", "mediumseagreen", "coral1"))
 ```
 
 ```{r}
