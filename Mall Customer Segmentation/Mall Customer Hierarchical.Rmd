@@ -1,0 +1,470 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# DS: Hierarchical Clustering with Mall Customer Data
+
+## Introduction
+
+In this notebook, we will be exploring the use of hierarchical clustering as a method of grouping together similar customers in a mall based on their purchasing habits. We will be using a dataset of mall customer data that includes the age, annual income, and spending score of each customer. Our ultimate goal is to identify clusters of similar customers that can be targeted with specific marketing campaigns or promotions.
+
+The topic is split up into two notebooks:
+
+- Data Exploration (Notebook: "Mall Customer Data Exploration")
+- Applying Hierarchical Clustering (This notebook)
+
+First we will apply the hierarchical clustering algorithm to group the customers into clusters and then decide where to set the cut. Finally we will evaluate the results and discuss the possible implications for marketing strategies.
+
+*The dataset was retrieved from:
+[GitHub: Machine Learning A-Z Mall_Customers.csv](https://github.com/SteffiPeTaffy/machineLearningAZ/blob/master/Machine%20Learning%20A-Z%20Template%20Folder/Part%204%20-%20Clustering/Section%2025%20-%20Hierarchical%20Clustering/Mall_Customers.csv)*
+
+### Hierarchical Clustering
+
+Hierarchical clustering is a method of cluster analysis which seeks to build a hierarchy of clusters. In hierarchical clustering, each data point is initially treated as its own cluster, and the algorithm iteratively merges the most similar clusters until a specified number of clusters or some other stopping criterion is reached. There are two main types of hierarchical clustering: agglomerative, which starts with individual data points and merges them into increasingly larger clusters, and divisive, which starts with all data points in a single cluster and divides them into smaller and smaller clusters.
+
+One of the key advantages of hierarchical clustering is that it does not require the user to specify the number of clusters upfront, as is required by many other clustering methods. Instead, the user can choose to cut the hierarchy at a desired level to obtain a particular number of clusters. This can be useful in situations where it is not clear how many clusters are present in the data.
+
+Another advantage of hierarchical clustering is that it produces a tree-like diagram, known as a dendrogram, which shows the hierarchical structure of the clusters. This can be helpful in interpreting and understanding the clusters that have been created. Overall, hierarchical clustering can be a useful tool for identifying patterns and groupings in data, and is commonly used in a variety of fields including biology, marketing, and social science.
+
+[Wikipedia: Hierarchical Clustering](https://en.wikipedia.org/wiki/Cluster_analysis)
+
+## Load Libraries
+
+Here are some explanations of the libraries we will use in this notebook:
+
+### ggplot2
+
+ggplot2 is a powerful and widely-used data visualization package for the statistical programming language R. One of the key features of ggplot2 is its ability to create professional-quality plots with a minimal amount of code. It also has a number of functions for easily customizing the appearance of plots, including options for colors, themes, labels, and more.
+
+### ggdendro
+
+ggdendro package provides a high-level interface for creating dendrograms and tree diagrams using ggplot2.
+
+### factoextra
+
+factoextra is an R package that provides additional functionalities for the visualization of data from clustering methods. It is also built on top of the ggplot2 package, and provides a high-level interface for creating a wide range of plots and visualizations.
+
+```{r, warning=FALSE}
+library(ggplot2)
+library(ggdendro)
+library(factoextra)
+library(cluster)
+```
+
+## Read data From CSV
+
+Reading from a CSV file in R is trivial. The best practice is to use a relative path so others can easily run the notebook.
+We get a quick overview over the dataset by using the functions head and summary.
+
+The function head shows the first 5 columns of a dataset. Summary is a function that aggregates column data to provide additional information about each column, like Min, Median, Mean and Max.
+
+```{r}
+# Read CSV from relative path
+mall_customers <- read.csv("./data/Mall_Customers.csv")
+
+# Plot head
+head(mall_customers)
+
+# Plot summary
+summary(mall_customers)
+```
+
+## Prepare Data
+
+*Note: Due to a typo the column name "Genre" has been changed to "Gender" beforehand.*
+
+To work with the data we need to prepare. We need numerical data in each column. The Gender column is the only column containing non-numerical data. Therefore we factorize it with the function factor().
+
+The factor function is used to create a factor, which is a data type for storing categorical variables. A categorical variable is a type of variable that can take on one of a limited number of possible values, such as "male" or "female" for the gender of a person. Factors are an important data type in R because many statistical and machine learning methods treat categorical variables differently than continuous variables.
+
+The columns for Annual Income and Spending Score are renamed for better readability.
+
+```{r}
+# Make Gender a factor
+mall_customers$Gender <- factor(mall_customers$Gender)
+
+# Rename Annual Income
+colnames(mall_customers)[4] <- "AnnualIncome"
+
+# Rename Spending Score
+colnames(mall_customers)[5] <- "SpendingScore"
+
+# Plot head to see changes
+head(mall_customers)
+```
+
+## Create Dendrogram
+
+### Perform Hierarchical Clustering
+
+To perform Hierarchical Clustering we first want to create a dendrogram by using hclust and ggdendro. For the beginning we only consider the columns Annual Income and Spending Score. Later we will consider all columns (beside the column "CustomerID", as it doesn't contain meaningful data)
+
+hclust performs hierarchical clustering on a given set of data. The hclust function takes a distance matrix or a raw data matrix as input, and returns an object of class hclust which represents the hierarchical clustering solution.
+
+In the hclust function the method argument is used to specify the linkage method to use when merging clusters. There are several different linkage methods available, each of which determines how the distance between two clusters is calculated. The main linkage methods available in hclust are:
+
+- single: Also known as the nearest neighbor method, this method calculates the distance between two clusters as the minimum distance between any pair of points in the two clusters.
+
+- complete: Also known as the furthest neighbor method, this method calculates the distance between two clusters as the maximum distance between any pair of points in the two clusters.
+
+- average: This method calculates the distance between two clusters as the average distance between all pairs of points in the two clusters.
+
+- ward: This method seeks to minimize the variance within each cluster, and calculates the distance between two clusters as the increase in variance that would result from merging the two clusters.
+
+It is important to choose an appropriate linkage method depending on the characteristics of the data and the goals of the clustering analysis. In general, the "ward" method is a good default choice because it tends to produce clusters that are more compact and well-separated, while the "complete" and "average" methods tend to produce more elongated clusters. The "single" method is less commonly used because it tends to produce a large number of small clusters.
+
+### Dendrogram
+
+A dendrogram is a tree-like diagram that is often used to represent the results of a hierarchical clustering analysis. In a dendrogram, each individual data point is represented by a leaf node, and the clusters are represented by branches. The dendrogram shows the hierarchical structure of the clusters and can be used to cut the tree at a desired level to obtain a particular number of clusters.
+
+To read a dendrogram, you should start at the bottom of the diagram and work your way up. Each leaf node represents an individual data point, and the branches represent the clusters. The height of the branches indicates the distance between the clusters, with longer branches indicating greater distances and shorter branches indicating smaller distances.
+
+To understand the structure of the clusters, you can follow the branches up to the root of the tree. For example, if you are interested in the clusters at the top of the tree, you would look at the branches that connect to the root and see which data points are included in those clusters. If you are interested in the clusters at a lower level in the tree, you can cut the tree at that level and examine the clusters that are formed.
+
+[R: hclust](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/hclust.html)
+
+```{r}
+# Perform hierarchical clustering
+clusters <- hclust(dist(mall_customers[4:5]))
+
+# Create the dendrogram using ggdendro
+den <- ggdendrogram(clusters, main="Dendrogram") + labs(title="Mall Customers Dendrogram")
+
+# Plot dendrogram
+den
+```
+
+### Plot horizontal line of the Cut
+
+Now that we have our dendrogram we take a look at it and decide to define a number of clusters we want to have that will be referred as k in this notebook. Choosing the right height to cut we want to keep the clusters relatively big and approximately of the same size. By size we mean the number of data points that a cluster contains.
+
+In short: The clusters should not be too small nor have a great variance in terms of size.
+Setting k means to set the number of clusters we want to receive.
+
+```{r}
+# Set k
+k = 5
+```
+
+**The following steps are not mandatory and only required to deliver a better understanding of hierarchical clustering using dendrograms.**
+
+To get our desired number of clusters we need to cut the dendrogram at a specific y-value. This y-value can easily be calculated and visualized as follows:
+
+First we add the height of our desired cluster k and the height of cluster k + 1. As we want to draw the line between those clusters we have to divide the result by 2. The value retrieved is the y-value where we want to plot the horizontal line.
+
+
+```{r}
+# Get number of rows
+n = nrow(mall_customers[4:5])
+
+# Calculate cut height
+cut_height = (clusters$height[n-k] + clusters$height[n-k+1]) / 2
+
+# Draw horizontal line
+den + geom_hline(yintercept=cut_height, lty=2)
+```
+
+*You can try putting different values for k to see how the following plots will change and get a better understanding, how cutting into k clusters impacts the results.*
+
+### Plot Groups
+
+It is often helpful to annotate the dendrogram with the cluster labels to make it easier to understand. You can also use the color or shape of the data points or branches to encode additional information, such as the group membership of the data points.
+
+To draw rectangles around the clusters we use the function rect.hclust and pass the desired k value.
+
+```{r}
+# Prepare plot
+plot(clusters, cex=0.1, main="Mall Customers Dendrogram with Groups")
+
+# Add rectangles to plot. Define colors by using border parameter
+rect.hclust(clusters, k=k, border=2:6)
+```
+
+## Cut into Clusters
+
+As we decided to go with a value of 5 for k we now can cut the dendrogram into clusters using cutree.
+
+The cutree function takes an hclust object as input and returns a vector of cluster assignments for each data point. By default, the cutree function cuts the tree at a height such that the resulting clusters are as balanced as possible, but you can also specify the number of clusters directly using the k argument.
+
+```{r}
+k = 5
+
+# Cut Dendrogram into k clusters using cutree
+clusters_cut <- cutree(clusters, k)
+```
+
+## Visualize Clusters
+
+The best visualization for the resulting clusters is to use fviz_cluster() and passing it the clusters we just created.
+
+fviz_cluster creates a scatter plot of the data with the data points colored according to their cluster assignments. The plot will also show the cluster centroids by using bigger symbols.
+
+```{r}
+# Use fviz_cluster to visuakize clusters in a scatter plot
+fviz_cluster(list(data = mall_customers[4:5], cluster=clusters_cut))
+```
+
+## Summarize Clusters
+
+### Aggregation
+
+In the end we want to summarize data of the clusters to get an idea of the properties of each cluster. We do that by using the aggregate function.
+
+The aggregate function takes a data frame and a grouping variable as input, and returns a new data frame with the data aggregated by the specified grouping variable.
+
+Some of the most common functions that are used inside the aggregate function are:
+
+- mean: calculates the mean of a numeric vector
+- median: calculates the median of a numeric vector
+- sd: calculates the standard deviation of a numeric vector
+- var: calculates the variance of a numeric vector
+- min: returns the minimum value of a numeric vector
+- max: returns the maximum value of a numeric vector
+- range: returns the range (i.e., the difference between the maximum and minimum values) of a numeric vector
+- sum: calculates the sum of a numeric vector
+
+```{r}
+# Bind results of clusters
+results <- cbind(mall_customers[3:5], cluster=clusters_cut)
+
+# Get mean values of each cluster using aggregate function
+agg_mean <- aggregate(results[1:3], by=list(cluster=results$cluster), mean)
+
+# Get standard deviation values of each cluster using aggregate function
+agg_sd <- aggregate(results[1:3], by=list(cluster=results$cluster), sd)
+```
+
+Now the columns of both resulting tables are merged and renamed for better readability.
+
+```{r}
+# Merge resulting tables into one table
+agg <- merge(agg_mean, agg_sd, by="cluster")
+
+# Rename column names to useful names instead of .x and .y 
+names(agg) <- c("cluster", paste0(names(agg_mean)[-1], ".mean"), paste0(names(agg_sd)[-1], ".sd"))
+
+# Plot the merged table with renamed columns
+agg
+```
+
+### Results
+
+As we can see the standard deviation is low for most clusters. A low standard deviation means the dispersal of data points is not too big, which is exactly what we want as a result of clustering analysis.
+This means the resulting clusters are cohesive and could be used to learn about customers and use the data for marketing purposes. 
+
+Potential use cases for marketing strategies could include:
+
+- Define the age of a target group
+- Define the amount of money a target group is able to spend by looking at the Annual Income
+- Define the likelihood of a target group to pay a high or low price for a product by looking at the Spending Score
+- Find the largest group of customers
+- Find the smallest group of customers
+
+## Evaluate Clusters
+
+### Silhouette
+
+Silhouettes are used to evaluate clusters. The silhouette value (or silhouette width) is used to measure similarity of a data point to its own cluster (also called cohesion). 
+
+The silhouette plot is a graphical representation of the quality of a clustering solution. It is a plot of the silhouette coefficient of each data point in the dataset, which is a measure of how well the data point is assigned to its own cluster compared to other clusters.
+
+The silhouette coefficient of a data point is calculated as follows:
+
+1. Calculate the average distance between the data point and all other data points in the same cluster (a)
+2. Calculate the average distance between the data point and all other data points in the next nearest cluster (b)
+3. Calculate the silhouette coefficient of the data point as (b - a) / max(a, b)
+
+The silhouette coefficient ranges from -1 to 1, where a value of 1 indicates that the data point is very well-matched to its own cluster, and a value of -1 indicates that the data point is more closely matched to the next nearest cluster.
+
+[Geeks for Geeks: Silhouette index](https://www.geeksforgeeks.org/silhouette-index-cluster-validity-index-set-2/)
+
+```{r}
+# Prepare silhouette plot
+sil <- silhouette(clusters_cut, daisy(mall_customers[4:5]))
+
+# Plot the silhouette
+fviz_silhouette(sil, label=FALSE, print.summary=FALSE)
+```
+
+### Evaluation
+
+In this plot we can see only two data points having a silhouette width below zero. One possible interpretation of this result is that these two data points may be more similar to the data points in another cluster than they are to the data points in their own cluster. This could indicate that the clusters are not well-defined or that the data points do not fit too well within the clusters.
+
+However, it's important to note that the silhouette width is just one measure of cluster quality, and it is possible that the clusters are still reasonable even if some data points have a negative silhouette width. It may be helpful to visualize the clusters using a scatter plot or other visualization method to see if the clusters make sense based on the characteristics of the data. You could also consider using additional measures of cluster quality, such as the Calinski-Harabasz index or the Dunn index, to get a more comprehensive understanding of the quality of the clusters.
+
+[Geeks for Geeks: Calinski Harabasz](https://www.geeksforgeeks.org/calinski-harabasz-index-cluster-validity-indices-set-3/)
+
+[Geeks for Geeks: Dunn Index](https://www.geeksforgeeks.org/dunn-index-and-db-index-cluster-validity-indices-set-1/)
+
+## Different Approaches
+
+Instead of using only the two columns "Annual Income" and "Spending Score" we now want to try using all dimensions.
+
+### Using more Dimensions
+
+This time we want to use more than our two dimensions "Annual Income" and "Spending Score". So we add the columns "Gender" and "Age".
+
+#### Dendrogram
+
+Creating the dendrogram is the same as before, we just have to use the columns 2:5. We can now cut it right away. We decide to choose a value of 5 for k again.
+
+```{r}
+# Clustering
+head(mall_customers[2:5])
+clusters_all <- hclust(dist(mall_customers[2:5]))
+
+# Dendrogram
+den_all <- ggdendrogram(clusters_all)
+
+# Cut
+k = 4
+n = nrow(mall_customers[2:5])
+cut_height = (clusters_all$height[n-k] + clusters_all$height[n-k+1]) / 2
+
+# Plot
+den_all + geom_hline(yintercept=cut_height, lty=2)
+```
+
+*Again feel free to try other values for k and take a look how the following plots will change.*
+
+#### Plot Clusters
+
+By now you should know the drill. We simply plot the clusters and take a look at it.
+
+```{r}
+# Cut
+k = 5
+clusters_all_cut <- cutree(clusters_all, k)
+
+# Plot
+fviz_cluster(list(data = mall_customers[3:5], cluster = clusters_all_cut))
+```
+
+We can see that clusters are formed differently compared to using two dimensions. 
+
+#### Summary
+
+```{r}
+# Bind results of clusters
+results <- cbind(mall_customers[3:5], cluster=clusters_all_cut)
+
+# Get mean values of each cluster using aggregate function
+agg_mean <- aggregate(results[1:3], by=list(cluster=results$cluster), mean)
+
+# Get standard deviation values of each cluster using aggregate function
+agg_sd <- aggregate(results[1:3], by=list(cluster=results$cluster), sd)
+# Merge resulting tables into one table
+agg_all <- merge(agg_mean, agg_sd, by="cluster")
+
+# Rename column names to useful names instead of .x and .y 
+names(agg_all) <- c("cluster", paste0(names(agg_mean)[-1], ".mean"), paste0(names(agg_sd)[-1], ".sd"))
+
+# Plot the merged table with renamed columns
+agg_all
+```
+
+While the clusters look slightly different, the Summary looks almost identical. Next we plot the aggregation table of clustering with only 2 dimensions.
+
+```{r}
+# Plot table with only 2 Dimensions
+agg
+```
+
+The values are only slightly different and therefore no significant changes are observed.
+
+#### Silhouette
+
+Again we plot a silhouette to evaluate the outcome.
+
+```{r}
+# Plot Silhouette
+sil<-silhouette(clusters_all_cut, daisy(mall_customers[3:5]))
+fviz_silhouette(sil,label=FALSE,print.summary=FALSE)
+```
+
+As you can see we end up with slightly less cohesive clusters compared to working with only 2 dimensions.
+
+### Different linkage method
+
+#### Single linkage
+
+Last but not least we try to get a bad result and therefore choose a linkage method of hclust that is not fitting well to our data. The "single" method will end up with a complex dendrogram and results in poorly formed clusters as we will see from the plot.
+
+```{r, warning=FALSE}
+# Clustering with single linkage method
+clusters_all <- hclust(dist(mall_customers[2:5]), method="single")
+den_all <- ggdendrogram(clusters_all)
+
+# Cut
+k = 5
+
+# Prepare plot
+plot(clusters_all, cex=0.1, main="Mall Customers Dendrogram with Groups")
+
+# Add rectangles to plot. Define colors by using border parameter
+rect.hclust(clusters_all, k=k, border=6:2)
+```
+
+```{r}
+# Plot Clusters
+clusters_all_cut <- cutree(clusters_all, k)
+fviz_cluster(list(data = mall_customers[3:5], cluster = clusters_all_cut))
+```
+
+
+We can see that clusters 3-5 have very few members and the single linkage method does not fit for our data. 
+
+#### Evaluation
+
+From the Silhouette we even see that cluster 1 is not looking good in terms of cohesion. There are many data points with a silhouette width below zero. Clusters 3 and 5 consist of 1 member each, which means the silhouette width can't even be calculated since there are no data points for comparison.
+
+```{r}
+# Plot Silhouette
+sil<-silhouette(clusters_all_cut, daisy(mall_customers[3:5]))
+fviz_silhouette(sil,label=FALSE,print.summary=FALSE)
+```
+
+The silhouette plot shows that for clusters 3 and 5 we got more poorly matching data points than with using two dimensions.
+
+## Conclusion
+
+Cluster Analysis of the Mall Customer dataset has shown that using two dimensions works better than using all dimensions as the result of using less dimensions are more cohesive clusters. Performing cluster analysis on a dataset requires to choose a algorithm that suites underlying data well. There are many available algorithms to choose from. For a quick overview of possible algorithms check out:
+
+[Google Developers: Clustering-Algorithmen](https://developers.google.com/machine-learning/clustering/clustering-algorithms)
+
+[Wikipedia: Clustering Analysis Algorithms](https://en.wikipedia.org/wiki/Category:Cluster_analysis_algorithms)
+
+Every algorithm has a variety of parameters that have an impact on the outcome. Setting the right parameters can take some time and requires trial and error. After performing clustering the results should always be evaluated with at least one evaluation technique like silhouettes. There are more evaluation techniques to find at:
+
+[Geeks for Geeks: Silhouette index](https://www.geeksforgeeks.org/silhouette-index-cluster-validity-index-set-2/)
+
+[Geeks for Geeks: Calinski Harabasz](https://www.geeksforgeeks.org/calinski-harabasz-index-cluster-validity-indices-set-3/)
+
+[Geeks for Geeks: Dunn Index](https://www.geeksforgeeks.org/dunn-index-and-db-index-cluster-validity-indices-set-1/)
+
+With an algorithm fitting to your data and setup with optimal parameters in one hand and a good evaluation method in the other hand you are good to go and you will get results to work with. In the end it is up to you to give the resulting data a meaningful interpretation.
+
+We learned that Clustering can be used to identify groups of similar customers, products, or other types of data, which can be used to create targeted marketing campaigns, improve product offerings, or optimize supply chain operations. For example, clustering can be used to segment customers based on their purchase history, demographics, or other attributes. This can be used to create targeted marketing campaigns that are tailored to the specific needs and interests of different customer groups. Similarly, clustering can be used to identify groups of similar products, which can be used to optimize pricing and product offerings.
+
+Clustering can also be used in supply chain management to identify patterns in demand and inventory data. This can help businesses improve forecasting accuracy and optimize their inventory levels, which can lead to cost savings and improved customer service. In addition, clustering can be used to identify patterns in data from various sensors or IoT devices, which can be used to improve the performance and maintenance of industrial equipment, predict component failures, or optimize energy consumption.
+
+In conclusion, Clustering is a powerful technique that can be used in a wide range of business applications. It can help businesses better understand their customers, products, and operations, and make data-driven decisions that lead to increased efficiency, cost savings, and improved customer service.
+
+## References
+
+[GitHub: Machine Learning A-Z Mall_Customers.csv](https://github.com/SteffiPeTaffy/machineLearningAZ/blob/master/Machine%20Learning%20A-Z%20Template%20Folder/Part%204%20-%20Clustering/Section%2025%20-%20Hierarchical%20Clustering/Mall_Customers.csv)
+
+[Wikipedia: Hierarchical Clustering](https://en.wikipedia.org/wiki/Cluster_analysis)
+
+[R: hclust](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/hclust.html)
+
+[Geeks for Geeks: Silhouette index](https://www.geeksforgeeks.org/silhouette-index-cluster-validity-index-set-2/)
+
+[Geeks for Geeks: Calinski Harabasz](https://www.geeksforgeeks.org/calinski-harabasz-index-cluster-validity-indices-set-3/)
+
+[Geeks for Geeks: Dunn Index](https://www.geeksforgeeks.org/dunn-index-and-db-index-cluster-validity-indices-set-1/)
+
+[Google Developers: Clustering-Algorithmen](https://developers.google.com/machine-learning/clustering/clustering-algorithms)
+
+[Wikipedia: Clustering Analysis Algorithms](https://en.wikipedia.org/wiki/Category:Cluster_analysis_algorithms)
