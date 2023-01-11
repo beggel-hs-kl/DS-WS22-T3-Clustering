@@ -1,0 +1,381 @@
+---
+title: "Centroid Clustering (K-means) - Credit Card dataset"
+output: html_document
+---
+
+# DS: K-means Clustering with Credit Card Data
+
+## Introduction
+
+
+In this notebook we are considering credit cards customers segmentation with the help of K-means.
+
+K-means is a popular and simple unsupervised learning technique that is used to group similar data points together. The goal of this notebook is to use this algorithm to identify patterns and relationships in the credit card spending habits of the customers, which can then be used to inform targeted marketing campaigns or other business strategies.
+
+We will begin by loading and exploring the credit card dataset, which contains information such as the customer's monthly spending and credit limit. We will then pre-process the data to prepare it for clustering. Next, we will use the k-means algorithm to cluster the customers into groups based on their spending habits. Finally, we will analyze the results of the clustering and discuss how the information can be used to inform business decisions.
+
+Throughout the notebook, we will be using the R programming language and various R libraries such as ggplot2 for visualization, dplyr for data manipulation and kmeans for cluster analysis.
+
+
+## K-means Clustering
+
+K-means is an unsupervised machine learning algorithm that is used for clustering. It divides a group of data points into a specified number (k) of clusters, where each data point is assigned to the cluster with the closest mean. The goal is to find clusters such that the data points within each cluster are as similar as possible to each other, and as dissimilar as possible to data points in other clusters.
+
+Here's a high-level summary of the k-means algorithm:
+
+1. Initialize k centroids (randomly or based on some heuristic).
+2. Assign each data point to the nearest centroid, forming k clusters.
+3. Calculate the mean of each cluster.
+4. Reassign each data point to the nearest centroid using the updated means.
+5. Repeat steps 3 and 4 until the assignments do not change or some other stopping criteria is met.
+
+
+K-means is a widely used and relatively simple algorithm, but it has some limitations. For example, it is sensitive to the initial choice of centroids, and it can get stuck in local minima. It also assumes that the clusters are spherical, which may not always be the case in real-world data.
+
+## Dataset Description
+
+The dataset for retrieved from:
+[Kaggle: Credit Card Dataset for Clustering](https://www.kaggle.com/datasets/arjunbhasin2013/ccdata)*
+
+It summarizes the usage behaviour of 8950 active credit card holders during the last 6 months and contains the following 18 variables:
+
+* **CUST_ID** : Identification of Credit Card holder (Categorical)
+* **BALANCE** : Total amount of money a customer owes to the bank. Monthly average balance, based on daily balance average. Increases when a purchase is made, decreases when a payment is made.
+* **BALANCE_FREQUENCY** : How frequently the Balance is updated, score between 0 and 1 (1 = frequently updated, 0 = not frequently updated).
+* **PURCHASES** : Total amount spend on purchases.
+* **ONEOFF_PURCHASES** : Maximum purchase amount done in one-go.
+* **INSTALLMENTS_PURCHASES** : Overall amount of purchases done in installment.
+* **CASH_ADVANCE** : Cash in advance given by the user (Paying before the goods are shipped).
+* **PURCHASES_FREQUENCY** : How frequently the Purchases are being made, score between 0 and 1 (1 = frequently purchased, 0 = not frequently purchased).
+* **ONEOFFPURCHASESFREQUENCY** : How frequently Purchases are happening in one-go (1 = frequently purchased, 0 = not frequently purchased).
+* **PURCHASESINSTALLMENTSFREQUENCY** : How frequently purchases in installments are being done (1 = frequently done, 0 = not frequently done).
+* **CASHADVANCEFREQUENCY** : How frequently the cash in advance is being paid.
+* **CASHADVANCETRX** : Number of Transactions made with "Cash in Advanced".
+* **PURCHASES_TRX** : Number of purchase transactions made.
+* **CREDIT_LIMIT** : Limit of Credit Card for user.
+* **PAYMENTS** : Amount of Payment done by user to decrease their statement balance.
+* **MINIMUM_PAYMENTS** : Total minimum payments due in the period. Minimum payments are paid to avoid interest on purchases.
+* **PRCFULLPAYMENT** : Percent of full payment paid by user.
+* **TENURE** : Tenure of credit card service for user (Since how many months a customer uses a credit card).
+
+
+## Load Libraries
+
+The following libraries will be needed to run this notebook:
+
+### dplyr
+
+dplyr provides a set of commands for manipulating data frames. It is designed to make it easy to perform data manipulation tasks in R in a consistent, efficient, and expressive way. The package provides a set of functions for filtering, selecting, and transforming data, as well as for performing aggregate calculations and data summaries.
+
+### factoextra
+
+factoextra provides additional functionality for exploratory factor analysis (EFA) and principal component analysis (PCA). It is designed to be used in conjunction with other packages (such as ggplot2) to enhance the visualization and interpretation of EFA and PCA results. Although it can also be used for determining and visualizing a number of clusters.
+
+### GGally
+
+GGally is an R package that provides a set of functions for creating enhanced scatter plots and correlation matrices using the ggplot2 package. It provides a convenient way to plot complex data sets, and to visualize the relationship between different variables in the data. GGally is an easy to use package which can help users to explore and understand the structure of their data.
+
+### ggplot2
+
+ggplot2 is a popular package that provides an easy and powerful way to create static and interactive plots and graphics. It allows to easily create and customize a wide variety of plots. It provides a consistent and expressive syntax for creating different types of plots, including scatter plots, line plots, bar plots, histograms, density plots, and more. It is widely adopted by data analysts, statisticians and data scientist due to its flexibility, expressiveness, and its capability to handle complex data sets.
+
+### gridExtra
+
+gridExtra provides additional functionality for creating complex and custom graphics using the grid graphics system, which is the underlying system used by ggplot2. The grid system provides a powerful way to create custom layouts and arrange multiple plots and other graphical elements on a page, and gridExtra extends this functionality by providing a set of convenient functions for creating common types of multi-panel plots and tables. gridExtra is not as widely used as ggplot2 but it's very useful when you want to create complex graphics, when you need to combine multiple plots and other graphical elements, or when you need to create custom multi-panel plots. It's an essential tool when you need to fine-tune the representation of your visualizations in a publication-ready format.
+
+### imputeTS
+
+imputeTS is an R package for time series imputation. Time series imputation is the process of filling in missing data points in a time series. This can be useful when working with real-world data, which often contains missing values due to various reasons such as sensor failure or data collection errors. For example, using this package, one can replace missing data in the dataset with the mean or median values.
+
+### tidyverse
+
+The tidyverse is a collection of R packages that are designed to work together to make data manipulation and visualization easy and consistent. It's one of the most widely used collection of packages for data manipulation, visualization, and modeling in R. It includes a set of widely used and well-documented packages, including ggplot2 for data visualization, dplyr for data manipulation, tidyr for data reshaping, readr for reading in data, purrr for functional programming and more. As ggplot2 and dplyr are already included in this package, we do not have to load them separately.
+
+The packages in the tidyverse are designed to work together, making it easy to chain together multiple operations to accomplish a task. Each package in the tidyverse is focused on solving a specific problem, while providing a consistent and easy to use interface. The collection of packages in the tidyverse is actively developed and maintained, and it's widely used in academia and industry, by data scientists, statisticians, and researchers alike. The package is open-source, well-documented and actively maintained, making it a powerful and popular tool for data manipulation and visualization in R.
+
+
+Loading the required packages:
+
+```{r, results='hide'}
+library(factoextra)
+library(GGally)
+library(gridExtra)
+library(imputeTS)
+library(tidyverse)
+```
+
+## Load Data
+
+In R, you can use the read.csv() function to read a CSV (Comma Separated Values) file and store it as a data frame.
+
+Another way to do so is to use the read_csv() from readr package (included in tidyverse). It's a more efficient alternative to read csv files and handle large datasets. It returns a tibble (an enhanced dataframe) with all columns treated as their true types and better handle for reading large datasets.
+
+We will use a relative path to get our data:
+
+
+```{r}
+cards_raw <- read_csv('./datasests/CC_GENERAL.csv')
+head(cards_raw)
+```
+
+Here we see, how the data looks like.
+
+Next, we will use str() function to display the internal structure of a dataset. It provides a quick and easy way to get a summary of the data types, dimensions, and some other attributes of a dataset:
+
+```{r}
+str(cards_raw)
+```
+
+
+As we can see, all the values other than CUST_ID are numeric once. We will use the numeric attributes to perform K-means clustering.
+
+Then we apply the summary() function to the dataset, in order to generate a summary statistics of it. It provides a quick and easy way to get an overview of the central tendency, dispersion, and other descriptive statistics of a dataset. It will display:
+
+* the mean, median and quartiles for numerical variables
+* the range for variables
+
+```{r}
+summary(cards_raw)
+```
+
+## Data Preparation
+
+What we can see from summary is that, for example, on average people owe about 1.5K$ on their credit card. However it is nearly 3 times smaller than the average credit limit. One can also see, that people make installment purchases with their credit card more often, than one-off purchases. But unexpectedly, they pay more for one-off purchases, than they do for the installment ones. Furthermore, the datatset primarily contains the information about long-term customers : the average tenure is more than 11 months.
+
+What is also important to notice: there are missing values in the dataset. The affected columns are: CREDIT_LIMIT (1 NA values) and MINIMUM_PAYMENTS (313 NA values). K-means cannot deal with empty values, that's why we are to either replace or eliminate affected rows.
+
+There are multiple ways to deal with the missing values for K-means algorithm:
+
+* **Remove missing values**: The simplest way to deal with missing values is to remove any observations that have missing values. This approach is straightforward, but it can also result in loss of important information. Additionally, if the missing data is not missing completely at random this can cause bias in the clustering.
+
+* **Impute missing values**: Another approach is to impute missing values using a method such as mean or median imputation. Imputing the missing values allows you to keep the observations in the dataset and can improve the performance of the algorithm. However, imputing values might add noise and may not be the best strategy if the proportion of missing values is large.
+
+* **Clustering with missing values**: Instead of removing or imputing missing values, there are also clustering algorithm that can handle missing values. Some of them are k-means with missing values, k-modes and k-prototypes, which are modified versions of k-means that can handle categorical data and missing values simultaneously.
+
+* **Using Expectation-Maximization (EM)**: Another approach is to use Expectation-Maximization algorithm which can handle missing data by iteratively imputing missing data estimates and estimating the parameters of the clustering model until the algorithm reaches convergence.
+
+We'll choose to impute the missing values, so that we do not lose information. Mean imputation is normally used for approximately normal distributed data. In this case, preserving the mean of the variable is important. On the other hand, when the data is heavily skewed or if the goal of the analysis is to preserve the median of the variable, then using the median to impute missing values may be appropriate. Median imputation is more robust to outliers and skewness than mean imputation.
+
+We will therefore check data for outliers using the box plot:
+
+```{r}
+cards_raw %>%
+        gather(Attributes, values, 2:18) %>%
+        ggplot(aes(x = reorder(Attributes, values, FUN = median), y = values, fill = Attributes)) +
+        geom_boxplot(show.legend = FALSE) +
+        labs(title = "Cards Attributes - Boxplots") +
+        theme_bw() +
+        theme(axis.title.y = element_blank(),
+              axis.title.x = element_blank()) +
+        coord_flip()
+```
+
+...
+
+As we are dealing with continuous data with many outliers, the median values will be used to deal with the missing values. na_mean function from the imputeTS package helps us replace the missing values. With the help of complete.cases() function, we check if there are not NA values in the dataset anymore:
+
+```{r}
+cards <- na_mean(cards_raw, option = "median")
+sum(!complete.cases(cards))
+```
+
+The next step of data preparation is scaling. Scaling is often used in K-means clustering to ensure that the variables are on the same scale before the algorithm is applied. The reason for this is that K-means uses the Euclidean distance metric to calculate the distance between observations and cluster centers, which can be affected by the scale of the variables.
+
+If the variables have different scales, then the distance between observations and cluster centers will be dominated by the variable with the largest scale, giving it more weight in the clustering process. This can lead to suboptimal clusters and can cause the algorithm to converge to a local optimum.
+
+Scaling the variables before applying K-means will ensure that the distances between observations and cluster centers are based on all variables, not just the variable with the largest scale. It helps to equalize the importance of all variables, so that the algorithm converges to the global optimum.
+
+Among all the variables, only CUST_ID does not give any benefit for the behavioral clustering. We are considering all other, numerical, attributes for the scaling:
+
+```{r}
+cards_norm <- as.data.frame(scale(cards[2:18], center = TRUE, scale = TRUE))
+head(cards_norm)
+```
+
+
+Now we can see, that all the attributes are on the same scale.
+
+K-means algorithm is sensitive to the number of variables. As the number of variables increases, it can lead to over-fitting, slow convergence, and suboptimal clusters. To reduce the dimensionality of the data, Principal Component Analysis (PCA) can be used.
+
+PCA reduces the dimensionality of a dataset by projecting it onto a new set of axes that account for the most variation in the data. These new axes, called principal components, are linear combinations of the original variables that are ordered by the amount of variance they explain. By using only the first few principal components, you can retain most of the variation in the data while reducing the number of variables.
+
+When used in conjunction with K-means, PCA can significantly speed up the clustering process, while also improving the quality of the clusters. It allows K-means to focus on the most important features of the data, reducing the influence of noise and irrelevant variables.
+
+It's worth noting that PCA is most useful when applied to large datasets with many variables.
+
+So, the next step we are applying PCA to our normalized dataset. For this purpose we will use the prcomp() function:
+
+```{r}
+pca_cards <- prcomp(cards_norm, center = TRUE)
+summary(pca_cards)
+```
+
+
+We choose the first two Principal Components:
+
+```{r}
+pca_cards <- as.data.frame(-pca_cards$x[, 1:2])
+```
+We will define a function, that uses both methods for choosing the optimal K-value. For the visualisation, the fviz_nbclust() will be used. The grid.arrange() function helps us create a horizontal layout, consisting of 2 plots:
+
+```{r}
+find_optimal_k <- function(dataset) {
+  wss_res <- fviz_nbclust(dataset, kmeans, method = "wss")
+  sil_res <- fviz_nbclust(dataset, kmeans, method = "silhouette")
+  grid.arrange(wss_res, sil_res, ncol = 2)
+}
+```
+
+Now, we will analyze, what the optimal K-value could be:
+
+```{r}
+find_optimal_k(pca_cards)
+```
+
+Looking at the plot, constructed using the elbow method, one could say, the K-value could be 3. Although the WCSS value keeps changing relatively rapidly till the value 4. To get rid of confusion, we'll take a look on the second plot. It clearly defines 3 to be the perfect value. It will then be our number of clusters.
+
+Now, we are ready to apply the K-means algorithm. The function kmeans() is used in R for this purpose, where centers - is the number of clusters:
+
+```{r}
+set.seed(1234)
+
+pca_cards_clust <- kmeans(pca_cards, centers = 3)
+table(pca_cards_clust$cluster)
+```
+
+We can see, that much more credit card holder belong to the 1st cluster, than to the other two. Next, it would be nice to visualize the clusters. So, we define a function plot_clusters(). We can also specify the colors, our cluster will be. We will define them in the clusters_palette variable:
+
+```{r}
+clusters_palette <- c("#FF00F7", "#00AFBB", "#E7B800", "#00FF33", "#6E00FF",
+                      "#FFBC00", "#FF0000")
+plot_clusters <- function(clusters_info, dataset) {
+  fviz_cluster(clusters_info, data = dataset,
+               geom = "point",
+               palette = clusters_palette,
+               ellipse.type = "convex",
+               ggtheme = theme_bw()
+  )
+}
+```
+Let's apply this function to see what our clusters look like:
+
+```{r}
+plot_clusters(pca_cards_clust, pca_cards)
+```
+
+After that, we will add the cluster flag to the original dataset:
+
+```{r}
+cards$cluster <- pca_cards_clust$cluster
+```
+Now we can look at the scatter plots of different attributes, were the instances of different colors belong to different clusters:
+
+```{r}
+ggpairs(cbind(cards[2:18], Cluster = as.factor(cards$cluster)),
+        columns = 1:6, aes(colour = Cluster, alpha = 0.5),
+        lower = list(continuous = "points"),
+        upper = list(continuous = "blank"),
+        axisLabels = "none", switch = "both") +
+        scale_fill_manual(values = clusters_palette) +
+        scale_color_manual(values = clusters_palette) +
+        theme_bw()
+```
+
+
+Then, we will create a pair of new attributes, that will help us understand the clusters in a better way:
+
+```{r}
+cards$balance.to.limit.ratio <- cards$BALANCE / cards$CREDIT_LIMIT
+cards$payment.to.minimum.ratio <- cards$PAYMENTS / cards$MINIMUM_PAYMENTS
+cards$avg.purchase <- cards$PURCHASES / cards$PURCHASES_TRX;
+cards$avg.cash.advance <- cards$CASH_ADVANCE / cards$CASH_ADVANCE_TRX
+```
+
+* Balance-to-limit ratio will show us, how close a customer gets on his credit limit.
+* Payment-to-minimum - whether a customer pays a minimum payment or probably gets interest on what he owes to the bank.
+* Average purchase - the amount of average purchase made by a customer.
+* Average Cash-In-Advance - the amount of average cash-in-advance paid by a customer.
+
+Next, let's see, what the minimum values of different attributes for each of the clusters are. Grouping by cluster is performed with the group_by() function. The mean values are calculated with the help of the summarise_all() function with the "mean" as input:
+
+```{r}
+cards[2:21] %>%
+  group_by(cluster) %>%
+  summarise_all(mean)
+```
+
+With the help of the geom_histogram(), we can build histogramms for each attribute of every cluster. It will give us a representation of how each variable is distributed:
+
+```{r}
+
+for (i in 1:pca_cards_clust$iter)
+{
+  print(cards[cards$cluster == i,] %>%
+          gather(Attributes, value, -c("CUST_ID", "cluster"),) %>%
+          ggplot(aes(x = value, fill = Attributes)) +
+          geom_histogram(colour = "white", show.legend = FALSE, bins = 40) +
+          facet_wrap(~Attributes, scales = "free", ncol = 3) +
+          labs(x = "Values", y = "Frequency",
+               title = paste("Cards Attributes - Histograms, Cluster:", i, sep = " ")) +
+          theme_grey())
+}
+```
+
+We can see the following behaviour of the clusters:
+
+* **Cluster 1**.
+* **Cluster 2**.
+* **Cluster 3**.
+
+Now, we will plot the histograms of different clusters together. It will help us compare the clusters with each other:
+
+```{r}
+cards %>%
+  gather(Attributes, value, -c("CUST_ID", "cluster"),) %>%
+  ggplot(aes(x = value, fill = as.factor(cluster))) +
+  scale_fill_manual(values = clusters_palette) +
+  geom_histogram(colour = "white", show.legend = FALSE, bins = 40) +
+  facet_wrap(~Attributes, scales = "free", ncol = 3) +
+  labs(x = "Values", y = "Frequency",
+       title = "Cards Attributes - Histograms") +
+  theme_grey()
+```
+
+It would especially interesting to see, how many clients pay the minimum, that they should pay to the bank in order to avoid the interest:
+
+```{r}
+print(sum(cards$cluster == 1 & cards$payment.to.minimum.ratio < 1) / sum(cards$cluster == 1))
+print(sum(cards$cluster == 2 & cards$payment.to.minimum.ratio < 1) / sum(cards$cluster == 2))
+print(sum(cards$cluster == 3 & cards$payment.to.minimum.ratio < 1) / sum(cards$cluster == 3))
+```
+
+As a result - quite a big percentage of people to do not make minimum payments. The situation is however better for the 2nd cluster. In the third cluster, over 40% of client do not make minimum payments.
+
+The other way to represent the relations among variables is to build a parallel coordinate plot. We will therefore define a function show_paral_coordnates() to so so:
+
+
+```{r}
+show_paral_coordnates <- function(dataset, clusters_info, cluster_to_sort_by) {
+  datatset_with_clusters_info <- dataset
+  datatset_with_clusters_info$cluster <- as.factor(clusters_info$cluster)
+  dataset_avg <- (datatset_with_clusters_info %>%
+    group_by(cluster) %>%
+    summarize_if(is.numeric, mean, na.rm = TRUE))
+  dataset_avg_sorted <- dataset_avg[2:length(dataset_avg)][, order(dataset_avg[cluster_to_sort_by, 2:length(dataset_avg)])]
+  dataset_avg_sorted$cluster <- dataset_avg$cluster
+  ggparcoord(dataset_avg_sorted, columns = 1:(length(dataset_avg_sorted) - 1),
+             groupColumn = "cluster", scale = "globalminmax") +
+    scale_color_manual(values = clusters_palette) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+}
+```
+Building a parallel coordinate plot:
+```{r}
+cards_norm$cluster <- pca_cards_clust$cluster
+cards_norm$balance.to.limit.ratio <- cards_norm$BALANCE / cards_norm$CREDIT_LIMIT
+cards_norm$payment.to.minimum.ratio <- cards_norm$PAYMENTS / cards_norm$MINIMUM_PAYMENTS
+cards_norm$avg.purchase <- cards_norm$PURCHASES / cards_norm$PURCHASES_TRX;
+show_paral_coordnates(cards_norm, pca_cards_clust, 2)
+```
+
+Here we can see, how the value of balance-to-limit is extremely high for the 3rd cluster in comparsion to the other two.
