@@ -210,6 +210,13 @@ fviz_cluster(list(data = mall_customers[4:5], cluster=clusters_cut))
 
 ### Inspect Distribution
 
+Now we want to get an idea on how data is distributed. Histograms are a good way to show the distrbution of the Annual Income and Spending Score
+
+The fill color of the bars of the histogram is determined by the 'clusters_cut' column, which is first converted to a factor data type using as.factor(clusters_cut).
+The ggtitle function gives the title of the histogram and theme_minimal() and scale_fill_discrete is used to add theme and legend for the histogram.
+
+Each cluster is represented by a different color, with the color mapping determined by the 'clusters_cut' column, showing how the different clusters' spending score and anuual income are distributed across the range of possible values.
+
 ```{r}
 # Set alpha
 al = .7
