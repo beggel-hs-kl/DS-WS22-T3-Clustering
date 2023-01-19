@@ -45,11 +45,16 @@ ggdendro package provides a high-level interface for creating dendrograms and tr
 
 factoextra is an R package that provides additional functionalities for the visualization of data from clustering methods. It is also built on top of the ggplot2 package, and provides a high-level interface for creating a wide range of plots and visualizations.
 
+### gridExtra
+
+gridExtra is an R package used to arrange plots inside of a grid.
+
 ```{r, warning=FALSE}
 library(ggplot2)
 library(ggdendro)
 library(factoextra)
 library(cluster)
+library(gridExtra)
 ```
 
 ## Read data From CSV
@@ -221,21 +226,23 @@ Each cluster is represented by a different color, with the color mapping determi
 # Set alpha
 al = .7
 
-# Create a histogram of the Annual Income column
-ggplot(mall_customers, aes(x=AnnualIncome,fill=as.factor(clusters_cut))) + 
+# Create a histogram of the Annual Income by cluster
+plot_ann_inc <- ggplot(mall_customers, aes(x=AnnualIncome,fill=as.factor(clusters_cut))) + 
   geom_histogram(alpha=al) +
   #geom_density(color="#FFFFFF33", alpha=al) +
-  ggtitle("Annual Income by clusters") + 
+  ggtitle("Annual Income") + 
   theme_minimal() +
   scale_fill_discrete(name="cluster")
 
-# Create a histogram of the Spending Score column
-ggplot(mall_customers, aes(x=SpendingScore,fill=as.factor(clusters_cut))) + 
+# Create a histogram of the Spending Score by cluster
+plot_spd_scr <- ggplot(mall_customers, aes(x=SpendingScore,fill=as.factor(clusters_cut))) + 
   geom_histogram(alpha=al) +
   #geom_density(color="#FFFFFF33", alpha=al) +
-  ggtitle("Spending Score by clusters") + 
+  ggtitle("Spending Score") + 
   theme_minimal() +
   scale_fill_discrete(name="cluster")
+
+grid.arrange(plot_ann_inc, plot_spd_scr)
 ```
 
 ### Aggregation
